@@ -1,3 +1,78 @@
+/// Represents various types of tokens that can be extracted from a markdown input.
+///
+/// This enum is used to categorize and store different markdown elements such as headers,
+/// paragraphs, lists, inline formatting, and more. Each variant corresponds to a specific
+/// markdown construct and may contain associated data relevant to that construct.
+///
+/// # Variants
+///
+/// - `Header`:
+///   Represents a markdown header (e.g., `# Header`). Contains:
+///   - `level`: The level of the header (e.g., 1 for `#`, 2 for `##`).
+///   - `text`: The content of the header.
+///
+/// - `Paragraph`:
+///   Represents a paragraph of text. Contains:
+///   - `text`: The content of the paragraph.
+///
+/// - `UListItem`:
+///   Represents an unordered list item (e.g., `- Item`). Contains:
+///   - `text`: The content of the list item.
+///
+/// - `OLStart`:
+///   Marks the start of an ordered list.
+///
+/// - `OLEnd`:
+///   Marks the end of an ordered list.
+///
+/// - `OListItem`:
+///   Represents an ordered list item (e.g., `1. Item`). Contains:
+///   - `text`: The content of the list item.
+///
+/// - `SimpleText`:
+///   Represents plain text without any formatting. Contains:
+///   - `text`: The content of the text.
+///
+/// - `InlineCode`:
+///   Represents inline code (e.g., `` `code` ``). Contains:
+///   - `text`: The content of the inline code.
+///
+/// - `Quote`:
+///   Represents a blockquote (e.g., `> Quote`). Contains:
+///   - `text`: The content of the quote.
+///   - `nested_token`: A nested token inside the quote.
+///
+/// - `Bold`:
+///   Represents bold text (e.g., `**bold**`). Contains:
+///   - `text`: The content of the bold text.
+///
+/// - `Italic`:
+///   Represents italic text (e.g., `*italic*`). Contains:
+///   - `text`: The content of the italic text.
+///
+/// - `Strikethrough`:
+///   Represents strikethrough text (e.g., `~~text~~`). Contains:
+///   - `text`: The content of the strikethrough text.
+///
+/// - `Link`:
+///   Represents a hyperlink (e.g., `[text](url)`). Contains:
+///   - `text`: The display text of the link.
+///   - `url`: The URL of the link.
+///
+/// - `CodeBlockStart`:
+///   Marks the start of a code block (e.g., `` ``` ``).
+///
+/// - `CodeBlockEnd`:
+///   Marks the end of a code block (e.g., `` ``` ``).
+///
+/// - `HorizLine`:
+///   Represents a horizontal line (e.g., `---`).
+///
+/// - `BreakLine`:
+///   Represents a line break.
+///
+/// - `None`:
+///   Represents an empty or unrecognized token.
 use regex::Regex;
 use std::fmt;
 
@@ -139,6 +214,55 @@ impl fmt::Display for Token {
     }
 }
 
+/// Converts inline markdown syntax to HTML.
+///
+/// This function processes a single line of markdown text and converts inline
+/// markdown elements such as bold, italic, and links into their corresponding
+/// HTML representations. The function modifies the input string in place and
+/// returns the resulting HTML string.
+///
+/// # Supported Inline Markdown Syntax
+///
+/// - **Bold**: `**text**` is converted to `<strong>text</strong>`.
+/// - *Italic*: `*text*` is converted to `<i>text</i>`.
+/// - [Links](url): `[text](url)` is converted to `<a href="url">text</a>`.
+///
+/// # Arguments
+///
+/// * `line` - A mutable reference to a `String` containing the markdown text to be converted.
+///
+/// # Returns
+///
+/// A `String` containing the converted HTML representation of the input markdown.
+///
+/// # Example
+///
+/// ```rust
+/// let mut line = String::from("This is **bold**, *italic*, and [a link](https://example.com).");
+/// let html = convert_inline_markdown(&mut line);
+/// assert_eq!(
+///     html,
+///     "This is <strong>bold</strong>, <i>italic</i>, and <a href=\"https://example.com\">a link</a>."
+/// );
+/// ```
+///
+/// # Notes
+///
+/// - The function processes bold syntax (`**text**`) before italic syntax (`*text*`),
+///   as bold and italic can overlap in markdown.
+/// - Nested link syntax is supported, allowing for constructs like `[text [nested]](url)`.
+/// - The input string is modified during processing, but the returned string contains
+///   the final HTML result.
+///
+/// # Debugging
+///
+/// The function includes debug output for link processing. If a link pattern is detected,
+/// it prints a debug message to the console.
+///
+/// # Limitations
+///
+/// - The function assumes valid markdown input and does not handle malformed markdown.
+/// - Inline code syntax (e.g., `` `code` ``) is not currently supported.
 fn convert_inline_markdown(line: &mut String) -> String {
     // Treating bold syntax
     let mut re = Regex::new(r"\*\*(.+?)\*\*").unwrap();
@@ -203,7 +327,7 @@ fn convert_inline_markdown(line: &mut String) -> String {
 
         let text_part_re = Regex::new(r"\[[^\[\]]*(?:\[[^\[\]]*\][^\[\]]*)*\]").unwrap();
         let text_part_range = text_part_re.find(&found_substring).unwrap();
-        let link_text = (&found_substring[1..text_part_range.end()]).to_string(); // The title of the link
+        let link_text = (&found_substring[1..text_part_range.end() - 1]).to_string(); // The title of the link
         let mut link_url =
             (&found_substring[text_part_range.end()..found_substring.len()]).to_string(); // Still contains the '('  ')'
 
@@ -224,6 +348,60 @@ fn convert_inline_markdown(line: &mut String) -> String {
     return resulted_format;
 }
 
+/// Tokenizes a collection of markdown lines into HTML tokens.
+///
+/// This function processes an iterator of markdown strings, tokenizes each line,
+/// and converts them into a vector of HTML strings. It handles multi-line constructs
+/// such as ordered lists and code blocks by adding special tokens to encapsulate
+/// their content.
+///
+/// # Arguments
+///
+/// * `str_iter` - An iterator over `String` items, where each item represents a line of markdown text.
+///
+/// # Returns
+///
+/// A `Vec<String>` containing the HTML representation of the tokenized markdown lines.
+///
+/// # Example
+///
+/// ```rust
+/// let markdown_lines = vec![
+///     String::from("# Header"),
+///     String::from("This is a paragraph."),
+///     String::from("- List item"),
+///     String::from("```"),
+///     String::from("Code block content"),
+///     String::from("```"),
+/// ];
+/// let html_tokens = tokenize_text(markdown_lines.into_iter());
+/// assert_eq!(html_tokens, vec![
+///     "<h1>Header</h1>",
+///     "<p>This is a paragraph.</p>",
+///     "<ol>",
+///     "<li>List item</li>",
+///     "</ol>",
+///     "<pre><code>Code block content</code></pre>",
+/// ]);
+/// ```
+///
+/// # Notes
+///
+/// - The function uses `tokenize_line` to process each line individually.
+/// - Debugging information is printed to the console for tokenized lines.
+/// - Multi-line constructs such as ordered lists and code blocks are handled
+///   by adding `OLStart`, `OLEnd`, `CodeBlockStart`, and `CodeBlockEnd` tokens.
+///
+/// # Debugging
+///
+/// The function includes debug output for tokenized lines. It prints the tokenized
+/// representation of the input lines to the console.
+///
+/// # Limitations
+///
+/// - The function assumes valid markdown input and does not handle malformed markdown.
+/// - Inline markdown elements (e.g., bold, italic, links) are processed by the
+///   `convert_inline_markdown` function.
 pub fn tokenize_text(str_iter: impl Iterator<Item = String>) -> Vec<String> {
     let mut string_result: Vec<String> = Vec::new();
     let input_text: Vec<String> = str_iter.collect();
@@ -407,4 +585,49 @@ pub fn tokenize_line(line: String) -> Result<Token, ()> {
         text: (inline_converted_line),
     };
     Ok(token_result)
+}
+
+#[test]
+fn test_convert_inline_markdown_bold() {
+    let mut line = String::from("This is **bold** text.");
+    let result = convert_inline_markdown(&mut line);
+    assert_eq!(result, "This is <strong>bold</strong> text.");
+}
+
+#[test]
+fn test_convert_inline_markdown_italic() {
+    let mut line = String::from("This is *italic* text.");
+    let result = convert_inline_markdown(&mut line);
+    assert_eq!(result, "This is <i>italic</i> text.");
+}
+
+#[test]
+fn test_tokenize_text_simple() {
+    let markdown_lines = vec![
+        String::from("# Header"),
+        String::from("This is a paragraph."),
+        String::from("- List item"),
+    ];
+    let result = tokenize_text(markdown_lines.into_iter());
+    assert_eq!(
+        result,
+        vec![
+            "<h1>Header</h1>",
+            "<p>This is a paragraph.</p>",
+            "<li>List item</li>",
+        ]
+    );
+}
+
+#[test]
+fn test_tokenize_line_header() {
+    let line = String::from("## Subheader");
+    let token = tokenize_line(line).unwrap();
+    match token {
+        Token::Header { level, text } => {
+            assert_eq!(level, 2);
+            assert_eq!(text, "Subheader");
+        }
+        _ => panic!("Expected a Header token"),
+    }
 }

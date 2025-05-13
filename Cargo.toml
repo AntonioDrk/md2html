@@ -3,6 +3,10 @@ name = "markdown_converter"
 version = "0.1.0"
 edition = "2021"
 
+[lib]
+path = "src/parser.rs"
+name = "markdown_parser"
+
 [dependencies]
 colored = "2"
 regex = "1.11.1"
