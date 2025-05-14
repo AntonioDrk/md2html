@@ -5,15 +5,14 @@ use core::panic;
 use parser::tokenize_text;
 use std::env;
 use std::fs::File;
-use std::io::{BufRead, BufReader};
-use std::os::windows::fs::FileExt;
+use std::io::{BufRead, BufReader, Read, Seek};
 use std::path::{Path, PathBuf};
 
 //TODO: delete
 fn read_and_chunk_file(path: PathBuf) {
     let display: std::path::Display<'_> = path.display();
 
-    let file: File = match File::open(&path) {
+    let mut file: File = match File::open(&path) {
         Err(why) => panic!("couldn't open {}: {}", display, why),
         Ok(file) => file,
     };
@@ -30,7 +29,9 @@ fn read_and_chunk_file(path: PathBuf) {
     let mut total_read: usize = 0;
 
     for _i in 0..num_chunks {
-        bytes_read = file.seek_read(&mut buf, total_read as u64).unwrap();
+        file.seek(std::io::SeekFrom::Start(total_read as u64))
+            .unwrap();
+        bytes_read = file.read(&mut buf).unwrap();
         total_read += bytes_read;
         println!(
             "{} {}/{} {}",
@@ -55,7 +56,8 @@ fn read_lines_file(path: &PathBuf) -> Result<impl Iterator<Item = String>, ()> {
 
 fn main() {
     let mut working_path = env::current_dir().unwrap();
-    working_path.push(Path::new("input\\in.md"));
+    let path_str = format!("input{}in.md", std::path::MAIN_SEPARATOR_STR).to_string();
+    working_path.push(Path::new(&path_str));
 
     let str_iter = match read_lines_file(&working_path) {
         Err(_) => panic!("Error: Could not read lines of file"),

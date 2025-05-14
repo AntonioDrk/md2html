@@ -195,7 +195,7 @@ fn convert_inline_markdown(line: &mut String) -> String {
     resulted_format = String::new();
 
     while re.is_match(&line_copy) {
-        println!("[debug] Found a link pattern in line:\n{}\n", line_copy);
+        //println!("[debug] Found a link pattern in line:\n{}\n", line_copy);
         // Find the indexes of the first match
         let found_ind = re.find(&line_copy).unwrap();
         let found_substring = (&line_copy[found_ind.range()]).to_string(); // [Link Text](url)
@@ -203,7 +203,7 @@ fn convert_inline_markdown(line: &mut String) -> String {
 
         let text_part_re = Regex::new(r"\[[^\[\]]*(?:\[[^\[\]]*\][^\[\]]*)*\]").unwrap();
         let text_part_range = text_part_re.find(&found_substring).unwrap();
-        let link_text = (&found_substring[1..text_part_range.end()]).to_string(); // The title of the link
+        let link_text = (&found_substring[1..text_part_range.end() - 1]).to_string(); // The title of the link
         let mut link_url =
             (&found_substring[text_part_range.end()..found_substring.len()]).to_string(); // Still contains the '('  ')'
 
@@ -231,17 +231,17 @@ pub fn tokenize_text(str_iter: impl Iterator<Item = String>) -> Vec<String> {
     let mut token_list: Vec<Token> = Vec::new();
     let mut token_list_processed = Vec::new();
 
-    let mut debug_print_str: String = "[ ".to_string();
-    for line in &input_text {
-        let token = tokenize_line(line.clone()).unwrap_or(Token::BreakLine {});
+    // let mut debug_print_str: String = "[ ".to_string();
+    // for line in &input_text {
+    //     let token = tokenize_line(line.clone()).unwrap_or(Token::BreakLine {});
 
-        // Debug printing
-        debug_print_str += &format!("{:?},\t", token);
-        token_list.push(token);
-    }
-    debug_print_str += " ]\n";
-    let debugRe = Regex::new(r"\{[^{}]*\}").unwrap();
-    println!("[DEBUG] {}", debugRe.replace_all(&debug_print_str, ""));
+    //     // Debug printing
+    //     debug_print_str += &format!("{:?},\t", token);
+    //     token_list.push(token);
+    // }
+    // debug_print_str += " ]\n";
+    // let debugRe = Regex::new(r"\{[^{}]*\}").unwrap();
+    // println!("[DEBUG] {}", debugRe.replace_all(&debug_print_str, ""));
 
     // Parse further the token_list for tokens which need multi-line support
     // eg. code blocks, ordered lists
