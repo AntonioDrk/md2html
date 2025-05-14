@@ -5,7 +5,7 @@ use core::panic;
 use parser::tokenize_text;
 use std::env;
 use std::fs::File;
-use std::io::{BufRead, BufReader, Read, Seek};
+use std::io::{BufRead, BufReader, Read, Seek, Write};
 use std::path::{Path, PathBuf};
 
 //TODO: delete
@@ -54,6 +54,33 @@ fn read_lines_file(path: &PathBuf) -> Result<impl Iterator<Item = String>, ()> {
     Ok(reader.lines().filter_map(Result::ok))
 }
 
+fn write_result(html_lines: Vec<String>) {
+    let mut working_path = env::current_dir().unwrap();
+    let path_str = format!("output{}out.html", std::path::MAIN_SEPARATOR_STR).to_string();
+    working_path.push(Path::new(&path_str));
+
+    let mut file = match File::create(&working_path) {
+        Err(err) => panic!(
+            "Error: Could not create file {}\nReason:{}",
+            working_path.display(),
+            err
+        ),
+        Ok(file) => file,
+    };
+    for mut line in html_lines {
+        line.push('\n');
+        let bytes_written = match file.write(line.as_bytes()) {
+            Err(_) => panic!(
+                "Error: Could not write bytes to file {}",
+                working_path.display()
+            ),
+            Ok(bytes_written) => bytes_written,
+        };
+
+        println!("Written {}bytes", bytes_written);
+    }
+}
+
 fn main() {
     let mut working_path = env::current_dir().unwrap();
     let path_str = format!("input{}in.md", std::path::MAIN_SEPARATOR_STR).to_string();
@@ -67,7 +94,9 @@ fn main() {
     };
 
     let tokenized_text_lines = tokenize_text(str_iter);
-    for line in tokenized_text_lines {
-        println!("{}", line);
-    }
+    write_result(tokenized_text_lines);
+
+    // for line in tokenized_text_lines {
+    //     println!("{}", line);
+    // }
 }
