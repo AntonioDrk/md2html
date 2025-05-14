@@ -13,12 +13,12 @@
 - [ ] **Markdown Parsing**
   - [x] Parse headers (`#`, `##`, etc.)
   - [x] Parse paragraphs
-  - [ ] Parse **bold** (`**text**`)
-  - [ ] Parse *italic* (`*text*`)
+  - [x] Parse **bold** (`**text**`)
+  - [x] Parse *italic* (`*text*`)
   - [x] Parse unordered lists (`- item`)
-  - [ ] Parse ordered lists (`1. item`)
+  - [x] Parse ordered lists (`1. item`)
   - [ ] Parse inline code (`` `code` ``)
-  - [ ] Parse code blocks (``` triple backticks ```)
+  - [x] Parse code blocks (``` triple backticks ```)
 
 - [x] **HTML Output**
   - [x] Convert parsed Markdown to HTML

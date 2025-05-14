@@ -232,13 +232,14 @@ pub fn tokenize_text(str_iter: impl Iterator<Item = String>) -> Vec<String> {
     let mut token_list_processed = Vec::new();
 
     // let mut debug_print_str: String = "[ ".to_string();
-    // for line in &input_text {
-    //     let token = tokenize_line(line.clone()).unwrap_or(Token::BreakLine {});
+    for line in &input_text {
+        let token = tokenize_line(line.clone()).unwrap_or(Token::BreakLine {});
 
-    //     // Debug printing
-    //     debug_print_str += &format!("{:?},\t", token);
-    //     token_list.push(token);
-    // }
+        // Debug printing
+        // debug_print_str += &format!("{:?},\t", token);
+
+        token_list.push(token);
+    }
     // debug_print_str += " ]\n";
     // let debugRe = Regex::new(r"\{[^{}]*\}").unwrap();
     // println!("[DEBUG] {}", debugRe.replace_all(&debug_print_str, ""));

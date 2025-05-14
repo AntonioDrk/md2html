@@ -59,6 +59,8 @@ fn main() {
     let path_str = format!("input{}in.md", std::path::MAIN_SEPARATOR_STR).to_string();
     working_path.push(Path::new(&path_str));
 
+    println!("Starting conversion of {}", working_path.display());
+
     let str_iter = match read_lines_file(&working_path) {
         Err(_) => panic!("Error: Could not read lines of file"),
         Ok(str_iter) => str_iter,
