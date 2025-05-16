@@ -8,5 +8,6 @@ path = "src/parser.rs"
 name = "markdown_parser"
 
 [dependencies]
-colored = "2"
+chrono = "0.4"
+colored = "3.0.0"
 regex = "1.11.1"
