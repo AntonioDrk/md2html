@@ -21,59 +21,28 @@ pub enum Token {
     SimpleText {
         text: String,
     },
-    InlineCode {
-        text: String,
-    },
     Quote {
         text: String,
         nested_token: Box<Token>,
     },
-    Bold {
-        text: String,
-    },
-    Italic {
-        text: String,
-    },
-    Strikethrough {
-        text: String,
-    },
+    // InlineCode {
+    //     text: String,
+    // },
+    // Strikethrough {
+    //     text: String,
+    // },
     // CodeBlock {
     //     text: String,
     // },
-    Link {
-        text: String,
-        url: String,
-    },
+    // Link {
+    //     text: String,
+    //     url: String,
+    // },
     CodeBlockStart {},
     CodeBlockEnd {},
     HorizLine {},
     BreakLine {},
     None {},
-}
-
-trait HasText {
-    fn text(&self) -> Option<&str>;
-}
-
-impl HasText for Token {
-    fn text(&self) -> Option<&str> {
-        match self {
-            Token::Header { text, .. }
-            | Token::Paragraph {text, ..}
-            | Token::UListItem {text, ..}
-            | Token::OListItem {text, ..}
-            | Token::SimpleText {text, ..}
-            | Token::InlineCode {text, ..}
-            | Token::Quote {text, ..}
-            | Token::Bold {text, ..}
-            | Token::Italic {text, ..}
-            | Token::Strikethrough {text, ..}
-            | Token::Link {text, ..}
-            // Add more as needed
-            => Some(text),
-            _ => None,
-        }
-    }
 }
 
 impl Clone for Token {
@@ -86,20 +55,18 @@ impl Clone for Token {
             Token::Paragraph { text } => Token::Paragraph { text: text.clone() },
             Token::UListItem { text } => Token::UListItem { text: text.clone() },
             Token::OListItem { text } => Token::OListItem { text: text.clone() },
-            Token::InlineCode { text } => Token::InlineCode { text: text.clone() },
             Token::SimpleText { text } => Token::SimpleText { text: text.clone() },
             Token::Quote { text, nested_token } => Token::Quote {
                 text: text.clone(),
                 nested_token: nested_token.clone(),
             },
-            Token::Bold { text } => Token::Bold { text: text.clone() },
-            Token::Italic { text } => Token::Italic { text: text.clone() },
-            Token::Strikethrough { text } => Token::Strikethrough { text: text.clone() },
-            // Token::CodeBlock { text } => Token::CodeBlock { text: text.clone() },
-            Token::Link { text, url } => Token::Link {
-                text: text.clone(),
-                url: url.clone(),
-            },
+            // Token::InlineCode { text } => Token::InlineCode { text: text.clone() },
+            // Token::Strikethrough { text } => Token::Strikethrough { text: text.clone() },
+            // // Token::CodeBlock { text } => Token::CodeBlock { text: text.clone() },
+            // Token::Link { text, url } => Token::Link {
+            //     text: text.clone(),
+            //     url: url.clone(),
+            // },
             Token::OLStart {} => Token::OLStart {},
             Token::OLEnd {} => Token::OLEnd {},
             Token::CodeBlockStart {} => Token::CodeBlockStart {},
@@ -118,23 +85,21 @@ impl fmt::Display for Token {
             Token::Paragraph { text } => write!(f, "<p>{}</p>", text),
             Token::UListItem { text } => write!(f, "<li>{}</li>", text),
             Token::OListItem { text } => write!(f, "<li>{}</li>", text),
-            Token::InlineCode { text } => write!(f, "<code>{}</code>", text),
-            Token::Bold { text } => write!(f, "<strong>{}</strong>", text),
-            Token::Italic { text } => write!(f, "<em>{}</em>", text),
             Token::Quote { text, nested_token } => {
                 write!(f, "<q>{}{}</q>", text, nested_token.as_ref())
             }
+            // Token::InlineCode { text } => write!(f, "<code>{}</code>", text),
+            // Token::Strikethrough { text } => write!(f, "<s>{}</s>", text),
+            // Token::Link { text, url } => write!(f, "<a href=\"{}\">{}</a>", url, text),
             Token::OLStart {} => write!(f, "<ol>"),
             Token::OLEnd {} => write!(f, "</ol>"),
-            Token::Strikethrough { text } => write!(f, "<s>{}</s>", text),
             //Token::CodeBlock { text } => write!(f, "<pre><code>{}</code></pre>", text),
             Token::CodeBlockStart {} => write!(f, "<pre><code>"),
             Token::CodeBlockEnd {} => write!(f, "</code></pre>"),
-            Token::Link { text, url } => write!(f, "<a href=\"{}\">{}</a>", url, text),
             Token::SimpleText { text } => write!(f, "{}", text),
             Token::HorizLine {} => write!(f, "<hr>"),
             Token::BreakLine {} => write!(f, "<br/>"),
-            _ => write!(f, ""),
+            Token::None {} => write!(f, ""),
         }
     }
 }
@@ -408,4 +373,111 @@ pub fn tokenize_line(line: String) -> Result<Token, ()> {
         text: (inline_converted_line),
     };
     Ok(token_result)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_tokenize_header() {
+        let line = String::from("## Header");
+        let token = tokenize_line(line).unwrap();
+        match token {
+            Token::Header { level, text } => {
+                assert_eq!(level, 2);
+                assert_eq!(text, "Header");
+            }
+            _ => panic!("Expected Header token"),
+        }
+    }
+
+    #[test]
+    fn test_tokenize_paragraph() {
+        let line = String::from("This is a paragraph.");
+        let token = tokenize_line(line).unwrap();
+        match token {
+            Token::Paragraph { text } => assert_eq!(text, "This is a paragraph."),
+            _ => panic!("Expected Paragraph token"),
+        }
+    }
+
+    #[test]
+    fn test_tokenize_ulist_item() {
+        let line = String::from("- List item");
+        let token = tokenize_line(line).unwrap();
+        match token {
+            Token::UListItem { text } => assert_eq!(text, "List item"),
+            _ => panic!("Expected UListItem token"),
+        }
+    }
+
+    #[test]
+    fn test_tokenize_olist_item() {
+        let line = String::from("1. Ordered item");
+        let token = tokenize_line(line).unwrap();
+        match token {
+            Token::OListItem { text } => assert_eq!(text, "Ordered item"),
+            _ => panic!("Expected OListItem token"),
+        }
+    }
+
+    #[test]
+    fn test_tokenize_codeblock_start() {
+        let line = String::from("```");
+        let token = tokenize_line(line).unwrap();
+        match token {
+            Token::CodeBlockStart {} => (),
+            _ => panic!("Expected CodeBlockStart token"),
+        }
+    }
+
+    #[test]
+    fn test_tokenize_text_codeblock_sequence() {
+        let lines = vec![
+            String::from("```"),
+            String::from("code line 1"),
+            String::from("code line 2"),
+            String::from("```"),
+        ];
+        let tokens = tokenize_text(lines.into_iter());
+        assert_eq!(tokens[0], "<pre><code>");
+        assert_eq!(tokens[1], "code line 1");
+        assert_eq!(tokens[2], "code line 2");
+        assert_eq!(tokens[3], "</code></pre>");
+    }
+
+    #[test]
+    fn test_tokenize_horiz_line() {
+        let line = String::from("---");
+        let token = tokenize_line(line).unwrap();
+        match token {
+            Token::HorizLine {} => (),
+            _ => panic!("Expected HorizLine token"),
+        }
+    }
+
+    #[test]
+    fn test_tokenize_break_line() {
+        let line = String::from("");
+        let token = tokenize_line(line).unwrap();
+        match token {
+            Token::BreakLine {} => (),
+            _ => panic!("Expected BreakLine token"),
+        }
+    }
+
+    #[test]
+    fn test_tokenize_bold_and_italic() {
+        let mut line = String::from("This is **bold** and *italic*.");
+        let html = super::convert_inline_markdown(&mut line);
+        assert_eq!(html, "This is <strong>bold</strong> and <i>italic</i>.");
+    }
+
+    #[test]
+    fn test_tokenize_link() {
+        let mut line = String::from("A [link](https://example.com) here.");
+        let html = super::convert_inline_markdown(&mut line);
+        assert_eq!(html, "A <a href=\"https://example.com\">link</a> here.");
+    }
 }

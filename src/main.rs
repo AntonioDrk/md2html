@@ -1,49 +1,13 @@
 mod parser;
+mod simple_log;
 
 use colored::Colorize;
 use core::panic;
 use parser::tokenize_text;
-use std::env;
 use std::fs::File;
-use std::io::{BufRead, BufReader, Read, Seek, Write};
+use std::io::{BufRead, BufReader, Write};
 use std::path::{Path, PathBuf};
-
-//TODO: delete
-fn read_and_chunk_file(path: PathBuf) {
-    let display: std::path::Display<'_> = path.display();
-
-    let mut file: File = match File::open(&path) {
-        Err(why) => panic!("couldn't open {}: {}", display, why),
-        Ok(file) => file,
-    };
-
-    let metadata: std::fs::Metadata = file.metadata().unwrap();
-    let size: u64 = metadata.len();
-
-    const SIZE_OF_CHUNK: u64 = 100;
-
-    let mut buf: [u8; SIZE_OF_CHUNK as usize] = [0; SIZE_OF_CHUNK as usize];
-    let num_chunks: u64 = size.div_ceil(SIZE_OF_CHUNK).try_into().unwrap();
-
-    let mut bytes_read: usize;
-    let mut total_read: usize = 0;
-
-    for _i in 0..num_chunks {
-        file.seek(std::io::SeekFrom::Start(total_read as u64))
-            .unwrap();
-        bytes_read = file.read(&mut buf).unwrap();
-        total_read += bytes_read;
-        println!(
-            "{} {}/{} {}",
-            "Reading".green(),
-            total_read.to_string().bold().green(),
-            size.to_string().bold().green(),
-            "bytes:".green()
-        );
-
-        println!("\n{}", String::from_utf8_lossy(&buf));
-    }
-}
+use std::{env, fs};
 
 fn read_lines_file(path: &PathBuf) -> Result<impl Iterator<Item = String>, ()> {
     let file: File = match File::open(&path) {
@@ -56,8 +20,23 @@ fn read_lines_file(path: &PathBuf) -> Result<impl Iterator<Item = String>, ()> {
 
 fn write_result(html_lines: Vec<String>) {
     let mut working_path = env::current_dir().unwrap();
-    let path_str = format!("output{}out.html", std::path::MAIN_SEPARATOR_STR).to_string();
-    working_path.push(Path::new(&path_str));
+    let folder_name = String::from("output");
+    working_path.push(folder_name);
+    log!(info, "Creating folders for {}", working_path.display());
+    // Create folder path
+    if let Err(err) = fs::create_dir_all(&(working_path.clone())) {
+        panic!(
+            "Error: Could not create output directory {}\nReason:{}",
+            working_path.display(),
+            err
+        );
+    }
+
+    // Create the file
+    let filename_out: String = String::from("out.html");
+    working_path.push(filename_out);
+
+    log!(info, "Writing file {}", working_path.display());
 
     let mut file = match File::create(&working_path) {
         Err(err) => panic!(
@@ -67,6 +46,8 @@ fn write_result(html_lines: Vec<String>) {
         ),
         Ok(file) => file,
     };
+
+    // Write inside the file
     for mut line in html_lines {
         line.push('\n');
         let bytes_written = match file.write(line.as_bytes()) {
