@@ -115,6 +115,7 @@ pub enum Token {
     // },
     CodeBlockStart {},
     CodeBlockEnd {},
+    CodeBlock {},
     HorizLine {},
     BreakLine {},
     None {},
@@ -135,13 +136,6 @@ impl Clone for Token {
                 text: text.clone(),
                 nested_token: nested_token.clone(),
             },
-            // Token::InlineCode { text } => Token::InlineCode { text: text.clone() },
-            // Token::Strikethrough { text } => Token::Strikethrough { text: text.clone() },
-            // // Token::CodeBlock { text } => Token::CodeBlock { text: text.clone() },
-            // Token::Link { text, url } => Token::Link {
-            //     text: text.clone(),
-            //     url: url.clone(),
-            // },
             Token::OLStart {} => Token::OLStart {},
             Token::OLEnd {} => Token::OLEnd {},
             Token::CodeBlockStart {} => Token::CodeBlockStart {},
@@ -149,6 +143,7 @@ impl Clone for Token {
             Token::HorizLine {} => Token::HorizLine {},
             Token::BreakLine {} => Token::BreakLine {},
             Token::None {} => Token::None {},
+            Token::CodeBlock {} => Token::CodeBlock {},
         }
     }
 }
@@ -163,12 +158,9 @@ impl fmt::Display for Token {
             Token::Quote { text, nested_token } => {
                 write!(f, "<q>{}{}</q>", text, nested_token.as_ref())
             }
-            // Token::InlineCode { text } => write!(f, "<code>{}</code>", text),
-            // Token::Strikethrough { text } => write!(f, "<s>{}</s>", text),
-            // Token::Link { text, url } => write!(f, "<a href=\"{}\">{}</a>", url, text),
             Token::OLStart {} => write!(f, "<ol>"),
             Token::OLEnd {} => write!(f, "</ol>"),
-            //Token::CodeBlock { text } => write!(f, "<pre><code>{}</code></pre>", text),
+            Token::CodeBlock {} => write!(f, ""),
             Token::CodeBlockStart {} => write!(f, "<pre><code>"),
             Token::CodeBlockEnd {} => write!(f, "</code></pre>"),
             Token::SimpleText { text } => write!(f, "{}", text),
@@ -204,7 +196,7 @@ impl fmt::Display for Token {
 ///
 /// ```rust
 /// let mut line = String::from("This is **bold**, *italic*, and [a link](https://example.com).");
-/// let html = convert_inline_markdown(&mut line);
+/// let html = markdown_parser::convert_inline_markdown(&mut line);
 /// assert_eq!(
 ///     html,
 ///     "This is <strong>bold</strong>, <i>italic</i>, and <a href=\"https://example.com\">a link</a>."
@@ -339,7 +331,7 @@ fn convert_inline_markdown(line: &mut String) -> String {
 ///     String::from("Code block content"),
 ///     String::from("```"),
 /// ];
-/// let html_tokens = tokenize_text(markdown_lines.into_iter());
+/// let html_tokens = markdown_parser::tokenize_text(markdown_lines.into_iter());
 /// assert_eq!(html_tokens, vec![
 ///     "<h1>Header</h1>",
 ///     "<p>This is a paragraph.</p>",
@@ -392,6 +384,7 @@ pub fn tokenize_text(str_iter: impl Iterator<Item = String>) -> Vec<String> {
     // We add special tokens that will "encapsulate" the content that requires multi-line support
     let mut last_token = Token::None {};
     let mut inside_code_block = false;
+    let mut skip_token = false;
     for (i, token) in token_list.iter().enumerate() {
         // PUSH ANYTHING BEFORE THE CURRENT TOKEN
         if matches!(token, Token::OListItem { .. })
@@ -401,15 +394,23 @@ pub fn tokenize_text(str_iter: impl Iterator<Item = String>) -> Vec<String> {
             token_list_processed.push(Token::OLStart {});
         }
 
-        if matches!(token, Token::CodeBlockEnd {}) {
-            inside_code_block = false;
+        if matches!(token, Token::CodeBlock {}) {
+            token_list_processed.push(if inside_code_block == false {
+                Token::CodeBlockStart {}
+            } else {
+                Token::CodeBlockEnd {}
+            });
+            skip_token = true;
+            inside_code_block = !inside_code_block;
         }
 
         // PUSH THE CURRENT TOKEN
-        token_list_processed.push(token.clone());
+        if skip_token == false {
+            token_list_processed.push(token.clone());
+        }
 
         // Code blocks remove all formatting inside so we'll only use simple_text tokens
-        if inside_code_block {
+        if inside_code_block && skip_token != true {
             let raw_line = input_text[i].clone();
             token_list_processed.pop();
             token_list_processed.push(Token::SimpleText { text: raw_line });
@@ -428,6 +429,7 @@ pub fn tokenize_text(str_iter: impl Iterator<Item = String>) -> Vec<String> {
         }
 
         last_token = token.clone();
+        skip_token = false;
     }
 
     for token in token_list_processed {
@@ -451,11 +453,11 @@ pub fn tokenize_text(str_iter: impl Iterator<Item = String>) -> Vec<String> {
 ///
 /// ```rust
 /// let line = String::from("This is a sample line.");
-/// tokenize_line(line);
+/// markdown_parser::tokenize_line(line);
 /// ```
 pub fn tokenize_line(line: String) -> Result<Token, ()> {
     let token_result;
-    let mut line_copy = line;
+    let mut line_copy = line.clone();
 
     // Not all blocks accept the inline parsing, eg. Code blocks
 
@@ -464,21 +466,30 @@ pub fn tokenize_line(line: String) -> Result<Token, ()> {
         let mut count = 0;
         while line_copy.starts_with("#") {
             count += 1;
-            line_copy.remove(0);
+            line_copy.remove(0); // Removes the #
         }
+        // If after all the "#" there isn't a simple space,
+        // we need to skip because it isn't valid markdown
+        if line_copy.chars().nth(0).unwrap() != ' ' {
+            line_copy = line.clone();
+        } else {
+            // Remove the space as well
+            line_copy.remove(0);
 
-        let inline_converted_line = convert_inline_markdown(&mut line_copy);
+            let inline_converted_line = convert_inline_markdown(&mut line_copy);
 
-        token_result = Token::Header {
-            level: (count),
-            text: (inline_converted_line),
-        };
-        return Ok(token_result);
+            token_result = Token::Header {
+                level: (count),
+                text: (inline_converted_line),
+            };
+            return Ok(token_result);
+        }
     }
 
     // Line is a block quote
-    if line_copy.starts_with(">") {
-        line_copy.remove(0);
+    if line_copy.starts_with("> ") {
+        line_copy.remove(0); // Removes the >
+        line_copy.remove(0); // Removes the space after
         let inline_converted_line = convert_inline_markdown(&mut line_copy);
         let nested_token = tokenize_line(inline_converted_line).unwrap();
         match nested_token {
@@ -507,29 +518,17 @@ pub fn tokenize_line(line: String) -> Result<Token, ()> {
 
     // Line followed by a space is a ListItem
     if line_copy.starts_with(&['-', '*', '+']) && line_copy.chars().nth(1).unwrap_or('.') == ' ' {
-        line_copy.remove(0);
+        line_copy.remove(0); // Removes the - char
+        line_copy.remove(0); // Removes the space after
         let inline_converted_line = convert_inline_markdown(&mut line_copy);
         token_result = Token::UListItem {
             text: (inline_converted_line),
         };
         return Ok(token_result);
     }
-
-    // Line is empty -> BreakLine
-    if line_copy == "" {
-        token_result = Token::BreakLine {};
-        return Ok(token_result);
-    }
-
-    // Line is a codeblock end cannot follow text (ordering matters)
-    if line_copy.trim_end().trim() == "```" {
-        token_result = Token::CodeBlockEnd {};
-        return Ok(token_result);
-    }
-
     // Line is codeblock start can follow text after it
     if line_copy.starts_with("```") {
-        token_result = Token::CodeBlockStart {};
+        token_result = Token::CodeBlock {};
         return Ok(token_result);
     }
 
@@ -542,6 +541,12 @@ pub fn tokenize_line(line: String) -> Result<Token, ()> {
             text: (inlined_text),
         };
 
+        return Ok(token_result);
+    }
+
+    // Line is empty -> BreakLine
+    if line_copy.clone().trim() == "" {
+        token_result = Token::BreakLine {};
         return Ok(token_result);
     }
 
@@ -558,8 +563,7 @@ mod tests {
 
     #[test]
     fn test_tokenize_header() {
-        let line = String::from("## Header");
-        let token = tokenize_line(line).unwrap();
+        let token = tokenize_line(String::from("## Header")).unwrap();
         match token {
             Token::Header { level, text } => {
                 assert_eq!(level, 2);
@@ -567,6 +571,123 @@ mod tests {
             }
             _ => panic!("Expected Header token"),
         }
+    }
+
+    #[test]
+    fn test_header_missing_space() {
+        let line = String::from("##Header");
+        let token = tokenize_line(line.clone()).unwrap();
+        match token {
+            Token::Paragraph { text } => assert_eq!(text, line),
+            _ => panic!("Should not parse header without space"),
+        };
+    }
+
+    #[test]
+    fn test_ulist_missing_space() {
+        let line = String::from("-List item");
+        let token = tokenize_line(line.clone()).unwrap();
+        match token {
+            Token::Paragraph { text } => assert_eq!(text, line),
+            _ => panic!("Should not parse header without space"),
+        };
+    }
+
+    #[test]
+    fn test_olist_missing_space() {
+        let line = String::from("1.Ordered item");
+        let token = tokenize_line(line.clone()).unwrap();
+        match token {
+            Token::Paragraph { text } => assert_eq!(text, line),
+            _ => panic!("Should not parse ordered list without space"),
+        };
+    }
+
+    #[test]
+    fn test_unclosed_code_block() {
+        let lines = vec![String::from("```"), String::from("code but never ends")];
+        let tokens = tokenize_text(lines.into_iter());
+        assert!(
+            tokens.last().unwrap() != "</code></pre>",
+            "Should not close unclosed code block"
+        );
+    }
+
+    #[test]
+    fn test_unclosed_bold() {
+        let mut line = String::from("This is **bold text.");
+        let html = convert_inline_markdown(&mut line);
+        assert_eq!(
+            html, "This is **bold text.",
+            "Unclosed bold should remain raw"
+        );
+    }
+
+    #[test]
+    fn test_unclosed_italic() {
+        let mut line = String::from("This is *italic text.");
+        let html = convert_inline_markdown(&mut line);
+        assert_eq!(
+            html, "This is *italic text.",
+            "Unclosed italic should remain raw"
+        );
+    }
+
+    #[test]
+    fn test_malformed_link_missing_closing_paren() {
+        let mut line = String::from("A [link](https://example.com here.");
+        let html = convert_inline_markdown(&mut line);
+        assert_eq!(
+            html, "A [link](https://example.com here.",
+            "Malformed link should not convert"
+        );
+    }
+
+    #[test]
+    fn test_malformed_link_missing_closing_bracket() {
+        let mut line = String::from("A link](https://example.com) here.");
+        let html = convert_inline_markdown(&mut line);
+        assert_eq!(
+            html, "A link](https://example.com) here.",
+            "Malformed link should not convert"
+        );
+    }
+
+    #[test]
+    fn test_misnested_formatting() {
+        let mut line = String::from("This is *italic and **bold*** text**.");
+        let html = convert_inline_markdown(&mut line);
+        assert_eq!(
+            html, "This is <i>italic and <strong>bold</strong></i> text**.",
+            "Misnested formatting should still parse valid nesting"
+        );
+    }
+
+    #[test]
+    fn test_not_a_horizontal_rule() {
+        let line = String::from("--- not a rule");
+        let token = tokenize_line(line);
+        match token {
+            Ok(Token::Paragraph { .. }) => (), // treat as paragraph
+            _ => panic!("Line with text after --- should not be HorizLine"),
+        }
+    }
+
+    #[test]
+    fn test_empty_or_garbage_line() {
+        let line = String::from("    "); // only spaces
+        let token = tokenize_line(line);
+        match token {
+            Ok(Token::BreakLine {}) => (),
+            _ => panic!("Whitespace-only line should be a BreakLine"),
+        }
+
+        let line = String::from("!@#$%^&*()");
+        let token = tokenize_line(line.clone());
+        match token {
+            Ok(Token::Paragraph { text }) => assert_eq!(line, text),
+            _ => panic!("Garbage line should fallback to Paragraph or raw text"),
+        };
     }
 
     #[test]
@@ -596,16 +717,6 @@ mod tests {
         match token {
             Token::OListItem { text } => assert_eq!(text, "Ordered item"),
             _ => panic!("Expected OListItem token"),
-        }
-    }
-
-    #[test]
-    fn test_tokenize_codeblock_start() {
-        let line = String::from("```");
-        let token = tokenize_line(line).unwrap();
-        match token {
-            Token::CodeBlockStart {} => (),
-            _ => panic!("Expected CodeBlockStart token"),
         }
     }
 

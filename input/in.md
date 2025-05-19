@@ -4,6 +4,8 @@
 
 Lorem ipsum dolor sit amet, *consectetur* adipiscing elit. **Sed do eiusmod tempor** incididunt ut labore et dolore magna aliqua.
 
+This is *italic and **bold*** text**.
+
 > - "Neque porro quisquam est qui **dolorem** ipsum quia dolor sit amet." ``test``
 
 ---
