@@ -4,7 +4,7 @@
 
 - [x] **Project Setup**
   - [x] Create project with `cargo new markdown_converter`
-  - [ ] Organize files into `main.rs`, `parser.rs`, and optionally `html.rs`
+  - [x] Organize files into `main.rs`, `parser.rs`, and optionally `html.rs`
 
 - [x] **Input Handling**
   - [x] Read from a file (e.g., `input.md`)

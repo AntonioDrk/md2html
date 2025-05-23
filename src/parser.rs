@@ -74,6 +74,7 @@
 /// - `None`:
 ///   Represents an empty or unrecognized token.
 use regex::Regex;
+use std::cmp::min;
 use std::fmt;
 
 #[derive(Debug)]
@@ -220,7 +221,7 @@ impl fmt::Display for Token {
 ///
 /// - The function assumes valid markdown input and does not handle malformed markdown.
 /// - Inline code syntax (e.g., `` `code` ``) is not currently supported.
-fn convert_inline_markdown(line: &mut String) -> String {
+pub fn convert_inline_markdown(line: &mut String) -> String {
     // Treating bold syntax
     let mut re = Regex::new(r"\*\*(.+?)\*\*").unwrap();
     let mut resulted_format = String::new();
@@ -302,6 +303,54 @@ fn convert_inline_markdown(line: &mut String) -> String {
     }
     resulted_format = resulted_format + &line_copy;
 
+    // Finding inlined code
+    re = Regex::new(r"(`+)([^`]*)(`+)").unwrap(); // Split into 3 capture groups
+    let mut line_copy = resulted_format.clone();
+    let mut resulted_format = String::new();
+    if re.is_match(&line_copy) {
+        let found_ind = re.find(&line_copy).unwrap();
+        let start_of_string = (&line_copy[0..found_ind.start()]).to_string(); // Whatever is before it
+
+        // We use capture groups to find all the parts
+        let Some(groups) = re.captures(&line_copy) else {
+            return line_copy;
+        };
+        let first_backticks = groups[1].to_string();
+        let mut inline_code = groups[2].to_string();
+        let end_backticks = groups[3].to_string();
+
+        if inline_code.len() > 0 {
+            let min_num_backticks = min(first_backticks.len(), end_backticks.len());
+            if min_num_backticks == first_backticks.len()
+                && min_num_backticks != end_backticks.len()
+            {
+                inline_code = format!(
+                    "{}{}",
+                    inline_code,
+                    end_backticks[0..end_backticks.len() - min_num_backticks].to_string()
+                );
+            } else if min_num_backticks == end_backticks.len()
+                && min_num_backticks != first_backticks.len()
+            {
+                inline_code = format!(
+                    "{}{}",
+                    first_backticks[0..first_backticks.len() - min_num_backticks].to_string(),
+                    inline_code
+                );
+            }
+
+            // Now found_substring contains only the italic text so we can make it html
+            resulted_format = format!(
+                "{resulted_format}{}<code>{}</code>",
+                start_of_string, inline_code
+            );
+
+            // We then trim the start of the original line till what we found
+            let _ = &line_copy.replace_range(..found_ind.end(), "");
+        }
+    }
+    resulted_format = resulted_format + &line_copy;
+
     return resulted_format;
 }
 
@@ -335,10 +384,10 @@ fn convert_inline_markdown(line: &mut String) -> String {
 /// assert_eq!(html_tokens, vec![
 ///     "<h1>Header</h1>",
 ///     "<p>This is a paragraph.</p>",
-///     "<ol>",
 ///     "<li>List item</li>",
-///     "</ol>",
-///     "<pre><code>Code block content</code></pre>",
+///     "<pre><code>",
+///     "Code block content",
+///     "</code></pre>",
 /// ]);
 /// ```
 ///
@@ -799,5 +848,44 @@ mod tests {
                 "<li>List item</li>",
             ]
         );
+    }
+
+    #[test]
+    fn test_inline_code_basic() {
+        let mut line = String::from("This is `code`.");
+        let html = convert_inline_markdown(&mut line);
+        assert_eq!(html, "This is <code>code</code>.");
+    }
+
+    #[test]
+    fn test_inline_code_multiple() {
+        let mut line = String::from("`a` and `b` are variables.");
+        let html = convert_inline_markdown(&mut line);
+        // Only the first inline code will be replaced due to current implementation
+        // Adjust this test if you improve the function to handle multiple
+        assert!(html.contains("<code>a</code>") || html.contains("<code>b</code>"));
+    }
+
+    #[test]
+    fn test_inline_code_with_special_chars() {
+        let mut line = String::from("Use `x = y + z;` in your code.");
+        let html = convert_inline_markdown(&mut line);
+        assert_eq!(html, "Use <code>x = y + z;</code> in your code.");
+    }
+
+    #[test]
+    fn test_inline_code_unclosed() {
+        let mut line = String::from("This is `not closed.");
+        let html = convert_inline_markdown(&mut line);
+        assert_eq!(html, "This is `not closed.");
+    }
+
+    #[test]
+    // We don't do recurssive inline codes
+    fn test_inline_code_nested_backticks() {
+        let mut line = String::from("Here is a ``code with `backtick` inside`` example.");
+        let html = convert_inline_markdown(&mut line);
+        // Should handle double backticks as code delimiter
+        assert!(html.contains("<code>code with `backtick` inside</code>"));
     }
 }
