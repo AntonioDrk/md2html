@@ -1,5 +1,13 @@
 #[macro_export]
 macro_rules! log {
+    (debug, $($arg:tt)*) => {
+        println!(
+            "[{}] {} {}",
+            chrono::Local::now().format("%Y-%m-%d %H:%M:%S"),
+            "[DEBUG]".bold().white(),
+            format!($($arg)*)
+        );
+    };
     (info, $($arg:tt)*) => {
         println!(
             "[{}] {} {}",
