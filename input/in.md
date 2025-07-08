@@ -20,6 +20,8 @@ This is *italic and **bold*** text**.
 
 ---
 
+![The San Juan Mountains are beautiful!](/assets/images/san-juan-mountains.jpg "San Juan Mountains")
+
 ## **List** **Example**
 
 - **Lorem** ipsum dolor sit amet

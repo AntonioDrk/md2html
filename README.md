@@ -24,9 +24,9 @@
   - [x] Convert parsed Markdown to HTML
   - [x] Output to terminal or save to file
 
-- [ ] **CLI Interface**
-  - [ ] Add basic CLI options (e.g., `--input`, `--output`)
-  - [ ] Add `--help` and `--version` flags
+- [x] **CLI Interface**
+  - [x] Add basic CLI options (e.g., `--input`, `--output`)
+  - [x] Add `--help` and `--version` flags
 
 ---
 
@@ -44,9 +44,9 @@
 
 ## 🧪 Testing & Debugging
 
-- [ ] **Basic Unit Tests**
-  - [ ] Test header parsing
-  - [ ] Test inline formatting
+- [x] **Basic Unit Tests**
+  - [x] Test header parsing
+  - [x] Test inline formatting
   - [ ] Test HTML output generation
 
 - [ ] **Debugging Tips**
