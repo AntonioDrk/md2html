@@ -150,7 +150,7 @@ fn print_help() {
     Markdown to HTML Converter
 
     USAGE:
-        markdown-converter --input <FILE> --output <FILE>
+        md2html --input <FILE> --output <FILE>
 
     OPTIONS:
         --input <FILE>       Absolute path to the input Markdown file
