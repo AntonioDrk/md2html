@@ -5,7 +5,6 @@ A small CLI tool that converts a single Markdown file to HTML. It supports heade
 # Links
 - Source: [src/parser.rs](src/parser.rs), [src/main.rs](src/main.rs)
 - Sample input: [input/in.md](input/in.md)
-- Example output: [src/Untitled-1.html](src/Untitled-1.html)
 - Manifest: [Cargo.toml](Cargo.toml)
 
 # Quick start (build & run)
