@@ -5,7 +5,7 @@ edition = "2021"
 
 [lib]
 path = "src/parser.rs"
-name = "markdown_parser"
+name = "md2html"
 
 [dependencies]
 chrono = "0.4"
