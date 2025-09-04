@@ -2,15 +2,14 @@
 macro_rules! log {
     (debug, $($arg:tt)*) => {
         // If this is a release do not log debug messages
-        if(cfg!(not(debug_assertions))) {
-            return;
+        if(cfg!(debug_assertions)) {
+            println!(
+                "[{}] {} {}",
+                chrono::Local::now().format("%Y-%m-%d %H:%M:%S"),
+                "[DEBUG]".bold().white(),
+                format!($($arg)*)
+            );
         }
-        println!(
-            "[{}] {} {}",
-            chrono::Local::now().format("%Y-%m-%d %H:%M:%S"),
-            "[DEBUG]".bold().white(),
-            format!($($arg)*)
-        );
     };
     (info, $($arg:tt)*) => {
         println!(
