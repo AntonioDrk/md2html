@@ -9,10 +9,10 @@ A small CLI tool that converts a single Markdown file to HTML. It supports heade
 
 # Quick start (build & run)
 1. Build:
-   cargo build --release
+   ```cargo build --release```
 
 2. Convert the default sample:
-   cargo run --release
+   ```cargo run --release```
 
    By default the program reads input/in.md and writes output/out.html (created under the workspace root).
 
