@@ -1,6 +1,10 @@
 #[macro_export]
 macro_rules! log {
     (debug, $($arg:tt)*) => {
+        // If this is a release do not log debug messages
+        if(cfg!(not(debug_assertions))) {
+            return;
+        }
         println!(
             "[{}] {} {}",
             chrono::Local::now().format("%Y-%m-%d %H:%M:%S"),

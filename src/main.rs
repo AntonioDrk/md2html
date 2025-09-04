@@ -78,7 +78,6 @@ fn write_result(html_lines: Vec<String>) {
             ),
             Ok(bytes_written) => bytes_written,
         };
-
         log!(debug, "Written {}bytes", bytes_written);
     }
 }

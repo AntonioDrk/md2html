@@ -1,56 +1,47 @@
-# ✅ Markdown to HTML Converter – Progress Checklist
+# md2html — Markdown to HTML converter
 
-## 🧱 Core Features
+A small CLI tool that converts a single Markdown file to HTML. It supports headers, paragraphs, bold/italic, unordered and ordered lists, code blocks (triple backticks) and some inline formatting. See the parser implementation in [`tokenize_text`](src/parser.rs) / [`tokenize_line`](src/parser.rs).
 
-- [x] **Project Setup**
-  - [x] Create project with `cargo new markdown_converter`
-  - [x] Organize files into `main.rs`, `parser.rs`, and optionally `html.rs`
+# Links
+- Source: [src/parser.rs](src/parser.rs), [src/main.rs](src/main.rs)
+- Sample input: [input/in.md](input/in.md)
+- Example output: [src/Untitled-1.html](src/Untitled-1.html)
+- Manifest: [Cargo.toml](Cargo.toml)
 
-- [x] **Input Handling**
-  - [x] Read from a file (e.g., `input.md`)
-  - [ ] (Optional) Read from `stdin`
+# Quick start (build & run)
+1. Build:
+   cargo build --release
 
-- [ ] **Markdown Parsing**
-  - [x] Parse headers (`#`, `##`, etc.)
-  - [x] Parse paragraphs
-  - [x] Parse **bold** (`**text**`)
-  - [x] Parse *italic* (`*text*`)
-  - [x] Parse unordered lists (`- item`)
-  - [x] Parse ordered lists (`1. item`)
-  - [ ] Parse inline code (`` `code` ``)
-  - [x] Parse code blocks (``` triple backticks ```)
+2. Convert the default sample:
+   cargo run --release
 
-- [x] **HTML Output**
-  - [x] Convert parsed Markdown to HTML
-  - [x] Output to terminal or save to file
+   By default the program reads input/in.md and writes output/out.html (created under the workspace root).
 
-- [x] **CLI Interface**
-  - [x] Add basic CLI options (e.g., `--input`, `--output`)
-  - [x] Add `--help` and `--version` flags
+# CLI usage
+- `--input <FILE>`    Absolute or relative path to the input Markdown file.
+- `--output <DIR>`   Directory where out.html will be created (default: ./output).
+- `--help`            Show help.
+- `--version`         Show version.
 
----
+## Example
+- Convert a custom file and write to a specific folder (<b>Windows example</b>):
+  `cargo run --release -- --input "C:\path\to\my.md" --output "C:\path\to\out_dir"`
 
-## 🌟 Bonus Features
+- Convert the included sample and open result:</br>
+  ```console
+  > cargo run --release
+  > start output\out.html
+  ```
 
-- [ ] **Live Terminal Preview**
-  - [ ] Integrate `termimad`
-  - [ ] Display a live-formatted Markdown preview in terminal
+# Testing
+- Run unit tests:
+  `cargo test`
 
-- [ ] **File Watching**
-  - [ ] Use `notify` to watch file changes
-  - [ ] Re-parse and re-render when file is modified
+# ⚠️ Notes & limitations
+- Inline code handling and some complex nesting are partially implemented; see tests in [src/parser.rs](src/parser.rs).
+- Code blocks preserve raw lines inside <pre><code>...</code></pre>.
+- If you want to extend parsing, edit [src/parser.rs](src/parser.rs) and add more inline/token rules.
 
----
+# License
 
-## 🧪 Testing & Debugging
-
-- [x] **Basic Unit Tests**
-  - [x] Test header parsing
-  - [x] Test inline formatting
-  - [ ] Test HTML output generation
-
-- [ ] **Debugging Tips**
-  - [ ] Use `dbg!()` macro to inspect variables
-  - [ ] Run with `RUST_BACKTRACE=1` to see full stack traces
-  - [ ] Use `cargo check` to catch issues without building
-  - [ ] Use `cargo clippy` for linting and code suggestions
+This project is provided under the MIT License — see the included LICENSE file for full terms.
